@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Angkringan Brotherhood - Online Cloud</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 8px; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @media print {
+            header, nav, .no-print, footer, .lg:col-span-4 { display: none !important; }
+            main { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+            body { background: white !important; }
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col">
+
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-20 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-4 flex justify-between items-center border-b border-indigo-500/50">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-mug-hot text-2xl"></i>
+                    <div>
+                        <h1 class="text-xl font-bold leading-tight">Angkringan Brotherhood</h1>
+                        <p id="auth-status" class="text-indigo-200 text-xs italic text-white font-bold">Menghubungkan ke Cloud...</p>
+                    </div>
+                </div>
+                <div class="text-right hidden sm:block">
+                    <div id="display-hari" class="text-sm font-semibold text-white"></div>
+                    <div id="display-tanggal" class="text-xs text-indigo-100"></div>
+                </div>
+            </div>
+            <nav class="flex space-x-4 mt-2">
+                <button onclick="switchTab('kasir')" id="tab-kasir" class="px-4 py-3 text-sm font-medium border-b-2 border-white text-white transition-colors">
+                    <i class="fa-solid fa-calculator mr-2"></i> Kasir
+                </button>
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-indigo-200 hover:text-white transition-colors">
+                    <i class="fa-solid fa-chart-line mr-2"></i> Laporan Cloud
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- VIEW 1: KASIR -->
+        <div id="view-kasir" class="fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4 no-print">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Mode Kasir Online</h2>
+                    <p class="text-gray-500 text-sm">Data akan tersimpan otomatis ke database cloud.</p>
+                </div>
+                <button onclick="resetTransaksi()" class="text-sm bg-indigo-100 hover:bg-indigo-200 text-indigo-700 py-2 px-4 rounded-lg flex items-center gap-2 font-medium">
+                    <i class="fa-solid fa-arrows-rotate"></i> <span>Transaksi Baru</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-4 no-print">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-32">
+                        <form id="form-kasir" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Pilih Menu</label>
+                                <select id="select-barang" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                                    <option value="" disabled selected>Memuat menu...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Jumlah</label>
+                                <input type="number" id="jumlah-kasir" required min="1" value="1" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <button type="submit" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl shadow-sm flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-cart-plus"></i> Tambah Pesanan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8 flex flex-col gap-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex-grow flex flex-col overflow-hidden">
+                        <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                <i class="fa-solid fa-receipt text-indigo-500"></i> Daftar Pesanan
+                            </h2>
+                            <span id="badge-item" class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-1 rounded-full no-print">0 Item</span>
+                        </div>
+                        <div class="p-0 overflow-x-auto custom-scrollbar min-h-[250px]">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                        <th class="p-4">Menu</th>
+                                        <th class="p-4 text-right">Harga</th>
+                                        <th class="p-4 text-center">Qty</th>
+                                        <th class="p-4 text-right">Subtotal</th>
+                                        <th class="p-4 text-center no-print">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="daftar-keranjang" class="divide-y divide-gray-100 text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="bg-indigo-600 rounded-2xl shadow-lg p-6 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div>
+                            <p class="text-indigo-200 font-medium mb-1">Total Bayar</p>
+                            <h3 id="grand-total" class="text-3xl sm:text-4xl font-bold">Rp 0</h3>
+                        </div>
+                        <button onclick="prosesSimpanCloud()" id="btn-bayar" class="w-full sm:w-auto bg-white text-indigo-600 hover:bg-gray-50 font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 no-print transition">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Simpan & Cetak
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: DASHBOARD CLOUD -->
+        <div id="view-dashboard" class="hidden fade-in space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <p class="text-gray-500 text-sm font-medium">Omzet Online</p>
+                    <h4 id="stat-pendapatan" class="text-2xl font-bold text-green-600 mt-1">Rp 0</h4>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <p class="text-gray-500 text-sm font-medium">Transaksi Sukses</p>
+                    <h4 id="stat-transaksi" class="text-2xl font-bold text-indigo-600 mt-1">0</h4>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <p class="text-gray-500 text-sm font-medium">Porsi Terjual</p>
+                    <h4 id="stat-item" class="text-2xl font-bold text-orange-600 mt-1">0</h4>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-day text-indigo-500"></i> Rekap Penjualan Per Hari
+                    </h2>
+                    <button onclick="eksporPDF()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition">
+                        <i class="fa-solid fa-file-pdf"></i> Ekspor PDF
+                    </button>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-xs uppercase">
+                                <th class="p-4">Tanggal</th>
+                                <th class="p-4 text-center">Transaksi</th>
+                                <th class="p-4 text-center">Menu</th>
+                                <th class="p-4 text-right">Pendapatan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-rekap-harian" class="divide-y divide-gray-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-4 space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <h2 class="text-lg font-semibold mb-5 flex items-center gap-2 text-gray-800">
+                            <i class="fa-solid fa-plus-circle text-indigo-500"></i> Tambah Menu
+                        </h2>
+                        <form id="form-dashboard" class="space-y-4">
+                            <input type="text" id="db-kode" required placeholder="Kode (NK-01)" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                            <input type="text" id="db-nama" required placeholder="Nama Menu" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                            <input type="number" id="db-harga" required min="0" placeholder="Harga" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-xl transition shadow-sm">Simpan ke Cloud</button>
+                        </form>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="p-4 bg-gray-50 border-b border-gray-100 font-semibold text-gray-800">Daftar Menu Cloud</div>
+                        <div class="max-h-[300px] overflow-y-auto custom-scrollbar">
+                            <table class="w-full text-sm">
+                                <tbody id="tabel-database" class="divide-y divide-gray-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full overflow-hidden">
+                        <div class="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                            <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                <i class="fa-solid fa-history text-indigo-500"></i> Riwayat Transaksi Terakhir
+                            </h2>
+                        </div>
+                        <div class="flex-grow overflow-auto custom-scrollbar min-h-[400px]">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="sticky top-0 bg-white shadow-sm">
+                                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase">
+                                        <th class="p-4">Waktu</th>
+                                        <th class="p-4">Detail</th>
+                                        <th class="p-4 text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabel-riwayat" class="divide-y divide-gray-100 text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-auto no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4 text-center text-sm text-gray-500">
+            Angkringan Brotherhood &copy; 2026 | Cloud Integrated
+        </div>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration (Otomatis dari environment)
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'angkringan-v1';
+
+        // State Global
+        let currentUser = null;
+        let menuCloud = [];
+        let riwayatCloud = [];
+        let keranjang = [];
+
+        const formatRupiah = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+
+        // -- AUTHENTICATION --
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth Error", err);
+                document.getElementById('auth-status').textContent = "Koneksi Gagal (Offline)";
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                document.getElementById('auth-status').textContent = "Online - Cloud Sync Aktif";
+                initListeners();
+            }
+        });
+
+        // -- FIRESTORE LISTENERS (RULE 1 & 2) --
+        const initListeners = () => {
+            if (!currentUser) return;
+
+            // Load Master Menu (Public Data)
+            const menuRef = collection(db, 'artifacts', appId, 'public', 'data', 'menus');
+            onSnapshot(menuRef, (snap) => {
+                menuCloud = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderMenuUI();
+            }, (err) => console.error("Menu Listen Error", err));
+
+            // Load Riwayat Penjualan (Public Data agar tersinkron antar admin)
+            const salesRef = collection(db, 'artifacts', appId, 'public', 'data', 'sales');
+            onSnapshot(salesRef, (snap) => {
+                riwayatCloud = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Urutkan manual di memory (Rule 2)
+                riwayatCloud.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                renderDashboardUI();
+            }, (err) => console.error("Sales Listen Error", err));
+        };
+
+        // -- RENDER UI --
+        const renderMenuUI = () => {
+            const select = document.getElementById('select-barang');
+            const tabel = document.getElementById('tabel-database');
+            
+            select.innerHTML = '<option value="" disabled selected>-- Pilih Menu --</option>';
+            tabel.innerHTML = '';
+
+            menuCloud.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = `${item.nama} (${formatRupiah(item.harga)})`;
+                select.appendChild(opt);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="p-3 text-gray-500">${item.kode}</td><td class="p-3 font-medium">${item.nama}</td><td class="p-3 text-right">${formatRupiah(item.harga)}</td>`;
+                tabel.appendChild(tr);
+            });
+        };
+
+        const renderDashboardUI = () => {
+            // Stats
+            const omzet = riwayatCloud.reduce((a, c) => a + c.total, 0);
+            const itemTerjual = riwayatCloud.reduce((a, c) => a + c.totalItem, 0);
+            document.getElementById('stat-pendapatan').textContent = formatRupiah(omzet);
+            document.getElementById('stat-transaksi').textContent = riwayatCloud.length;
+            document.getElementById('stat-item').textContent = itemTerjual;
+
+            // Riwayat Detail
+            const tabelR = document.getElementById('tabel-riwayat');
+            tabelR.innerHTML = '';
+            riwayatCloud.slice(0, 50).forEach(r => {
+                const waktuStr = r.timestamp ? new Date(r.timestamp.seconds * 1000).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '...';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="p-4 text-gray-400">${waktuStr}</td><td class="p-4 font-medium">${r.detail}</td><td class="p-4 text-right font-bold text-green-600">${formatRupiah(r.total)}</td>`;
+                tabelR.appendChild(tr);
+            });
+
+            // Rekap Harian
+            const rekap = {};
+            riwayatCloud.forEach(r => {
+                const tgl = r.tanggalKey || 'Lama';
+                if(!rekap[tgl]) rekap[tgl] = { tgl, trx: 0, item: 0, total: 0 };
+                rekap[tgl].trx++;
+                rekap[tgl].item += r.totalItem;
+                rekap[tgl].total += r.total;
+            });
+            const tabelH = document.getElementById('tabel-rekap-harian');
+            tabelH.innerHTML = '';
+            Object.values(rekap).sort((a,b) => b.tgl.localeCompare(a.tgl)).forEach(h => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="p-4 font-semibold">${h.tgl}</td><td class="p-4 text-center">${h.trx} Trx</td><td class="p-4 text-center">${h.item} Porsi</td><td class="p-4 text-right font-bold text-indigo-600">${formatRupiah(h.total)}</td>`;
+                tabelH.appendChild(tr);
+            });
+        };
+
+        // -- ACTION HANDLERS --
+        window.prosesSimpanCloud = async () => {
+            if (keranjang.length === 0) return alert("Keranjang masih kosong!");
+            if (!currentUser) return alert("Belum terhubung ke cloud. Tunggu sebentar.");
+
+            const btn = document.getElementById('btn-bayar');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+
+            const total = keranjang.reduce((a, c) => a + c.subtotal, 0);
+            const items = keranjang.reduce((a, c) => a + c.jumlah, 0);
+            const detail = keranjang.map(i => `${i.nama} (${i.jumlah}x)`).join(', ');
+            const tgl = new Date();
+
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sales'), {
+                    total,
+                    totalItem: items,
+                    detail,
+                    tanggalKey: tgl.toLocaleDateString('id-ID'),
+                    timestamp: serverTimestamp(),
+                    userId: currentUser.uid
+                });
+                
+                window.print();
+                keranjang = [];
+                renderKeranjangUI();
+            } catch (err) {
+                alert("Gagal menyimpan ke cloud. Cek koneksi.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Simpan & Cetak';
+            }
+        };
+
+        document.getElementById('form-dashboard').onsubmit = async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            const kode = document.getElementById('db-kode').value;
+            const nama = document.getElementById('db-nama').value;
+            const harga = parseInt(document.getElementById('db-harga').value);
+            
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'menus'), {
+                    kode, nama, harga, createdAt: serverTimestamp()
+                });
+                e.target.reset();
+            } catch (err) { alert("Gagal tambah menu"); }
+        };
+
+        // Kasir Logic
+        document.getElementById('form-kasir').onsubmit = (e) => {
+            e.preventDefault();
+            const idMenu = document.getElementById('select-barang').value;
+            const qty = parseInt(document.getElementById('jumlah-kasir').value);
+            const menu = menuCloud.find(m => m.id === idMenu);
+            if(menu) {
+                keranjang.push({ ...menu, jumlah: qty, subtotal: menu.harga * qty, id_k: Date.now() });
+                renderKeranjangUI();
+            }
+        };
+
+        const renderKeranjangUI = () => {
+            const body = document.getElementById('daftar-keranjang');
+            body.innerHTML = '';
+            let total = 0;
+            keranjang.forEach(i => {
+                total += i.subtotal;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="p-4 font-medium">${i.nama}</td><td class="p-4 text-right">${formatRupiah(i.harga)}</td><td class="p-4 text-center">${i.jumlah}</td><td class="p-4 text-right font-bold text-indigo-600">${formatRupiah(i.subtotal)}</td><td class="p-4 text-center no-print"><button onclick="window.hapusK(${i.id_k})" class="text-red-400"><i class="fa-solid fa-xmark"></i></button></td>`;
+                body.appendChild(tr);
+            });
+            document.getElementById('grand-total').textContent = formatRupiah(total);
+            document.getElementById('badge-item').textContent = `${keranjang.length} Baris`;
+        };
+
+        window.hapusK = (id) => { keranjang = keranjang.filter(i => i.id_k !== id); renderKeranjangUI(); };
+        window.resetTransaksi = () => { if(confirm("Kosongkan pesanan?")) { keranjang = []; renderKeranjangUI(); } };
+
+        // UI Tabs & Ekspor
+        window.switchTab = (tab) => {
+            document.getElementById('view-kasir').classList.toggle('hidden', tab !== 'kasir');
+            document.getElementById('view-dashboard').classList.toggle('hidden', tab !== 'dashboard');
+            document.getElementById('tab-kasir').className = tab === 'kasir' ? "px-4 py-3 text-sm font-medium border-b-2 border-white text-white" : "px-4 py-3 text-sm font-medium border-b-2 border-transparent text-indigo-200 hover:text-white";
+            document.getElementById('tab-dashboard').className = tab === 'dashboard' ? "px-4 py-3 text-sm font-medium border-b-2 border-white text-white" : "px-4 py-3 text-sm font-medium border-b-2 border-transparent text-indigo-200 hover:text-white";
+        };
+
+        window.eksporPDF = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Laporan Angkringan Brotherhood (Cloud)", 14, 20);
+            const rekap = {}; // Hitung ulang untuk PDF
+            riwayatCloud.forEach(r => {
+                const t = r.tanggalKey || 'Lama';
+                if(!rekap[t]) rekap[t] = { t, trx: 0, item: 0, tot: 0 };
+                rekap[t].trx++; rekap[t].item += r.totalItem; rekap[t].tot += r.total;
+            });
+            const rows = Object.values(rekap).sort((a,b) => b.t.localeCompare(a.t)).map(h => [h.t, h.trx, h.item, formatRupiah(h.tot)]);
+            doc.autoTable({ startY: 30, head: [['Tanggal', 'Trx', 'Porsi', 'Total']], body: rows });
+            doc.save("laporan_cloud.pdf");
+        };
+
+        // Init Waktu
+        setInterval(() => {
+            const d = new Date();
+            document.getElementById('display-hari').textContent = d.toLocaleString('id-ID', {weekday:'long', hour:'2-digit', minute:'2-digit'});
+            document.getElementById('display-tanggal').textContent = d.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+        }, 1000);
+
+        initAuth();
+    </script>
+</body>
+</html>
