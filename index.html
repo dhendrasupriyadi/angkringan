@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator Angkringan Brotherhood - Hybrid Cloud</title>
+    <title>Kalkulator Angkringan Brotherhood - Local Storage</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -11,61 +11,64 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @media print {
-            header, nav, .no-print, footer, .lg:col-span-4, .modal-backdrop { display: none !important; }
+            header, nav, .no-print, footer, .lg:col-span-4, .modal-backdrop, .btn-action { display: none !important; }
             main { padding: 0 !important; margin: 0 !important; width: 100% !important; }
-            body { background: white !important; }
+            .print-only { display: block !important; }
+            .shadow-sm, .shadow-lg { shadow: none !important; border: 1px solid #eee !important; }
         }
     </style>
 </head>
 <body class="text-gray-800 antialiased min-h-screen flex flex-col">
 
-    <!-- MODAL PASSWORD -->
+    <!-- MODAL PIN ADMIN -->
     <div id="modal-auth" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 hidden backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 fade-in">
             <div class="text-center mb-6">
                 <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fa-solid fa-lock text-indigo-600 text-2xl"></i>
                 </div>
-                <h3 class="text-xl font-bold">Akses Terbatas</h3>
-                <p class="text-gray-500 text-sm mt-1">Masukkan PIN Admin untuk melihat laporan</p>
+                <h3 class="text-xl font-bold">Akses Laporan</h3>
+                <p class="text-gray-500 text-sm mt-1">Masukkan PIN untuk membuka Dashboard</p>
             </div>
-            <input type="password" id="input-pin" placeholder="Masukkan PIN" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-4 text-center text-2xl tracking-widest outline-none focus:ring-2 focus:ring-indigo-500">
+            <input type="password" id="input-pin" placeholder="PIN Standar: 1234" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-4 text-center text-2xl tracking-widest outline-none focus:ring-2 focus:ring-indigo-500">
             <div class="flex gap-3">
                 <button onclick="closeAuthModal()" class="flex-1 py-3 text-gray-500 font-medium hover:bg-gray-100 rounded-xl transition">Batal</button>
-                <button onclick="verifyPin()" class="flex-1 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition shadow-lg">Masuk</button>
+                <button onclick="verifyPin()" class="flex-1 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition shadow-lg">Buka</button>
             </div>
-            <p id="auth-error" class="text-red-500 text-xs text-center mt-4 hidden">PIN yang Anda masukkan salah!</p>
+            <p id="auth-error" class="text-red-500 text-xs text-center mt-4 hidden">PIN salah!</p>
         </div>
     </div>
 
-    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-20 no-print">
+    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-20 no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="py-4 flex justify-between items-center border-b border-indigo-500/50">
+            <div class="py-4 flex justify-between items-center border-b border-indigo-600">
                 <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-mug-hot text-2xl"></i>
+                    <div class="bg-white/20 p-2 rounded-lg">
+                        <i class="fa-solid fa-mug-hot text-2xl"></i>
+                    </div>
                     <div>
                         <h1 class="text-xl font-bold leading-tight">Angkringan Brotherhood</h1>
-                        <p id="auth-status" class="text-indigo-200 text-xs italic font-bold">Inisialisasi Sistem...</p>
+                        <p class="text-indigo-200 text-xs font-medium"><i class="fa-solid fa-shield-halved mr-1"></i> Mode Offline & Salin Data</p>
                     </div>
                 </div>
                 <div class="text-right hidden sm:block">
-                    <div id="display-hari" class="text-sm font-semibold text-white"></div>
-                    <div id="display-tanggal" class="text-xs text-indigo-100"></div>
+                    <div id="display-hari" class="text-sm font-semibold"></div>
+                    <div id="display-tanggal" class="text-xs text-indigo-100 opacity-80"></div>
                 </div>
             </div>
-            <nav class="flex space-x-4 mt-2">
-                <button onclick="switchTab('kasir')" id="tab-kasir" class="px-4 py-3 text-sm font-medium border-b-2 border-white text-white transition-colors">
-                    <i class="fa-solid fa-calculator mr-2"></i> Kasir
+            <nav class="flex space-x-6">
+                <button onclick="switchTab('kasir')" id="tab-kasir" class="px-2 py-4 text-sm font-bold border-b-4 border-white text-white transition-all">
+                    KASIR
                 </button>
-                <button onclick="openAuthModal()" id="tab-dashboard" class="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-indigo-200 hover:text-white transition-colors">
-                    <i class="fa-solid fa-chart-line mr-2"></i> Laporan & Master
+                <button onclick="openAuthModal()" id="tab-dashboard" class="px-2 py-4 text-sm font-bold border-b-4 border-transparent text-indigo-200 hover:text-white transition-all">
+                    LAPORAN & MENU
                 </button>
             </nav>
         </div>
@@ -73,81 +76,81 @@
 
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         
-        <!-- ALERT ERROR CONFIG (Sangat Jelas) -->
-        <div id="config-error-alert" class="hidden mb-6 p-4 bg-orange-100 border-l-4 border-orange-500 text-orange-800 rounded-r-xl shadow-sm fade-in">
-            <div class="flex items-start">
-                <i class="fa-solid fa-circle-info mr-3 mt-1 text-xl"></i>
-                <div>
-                    <p class="font-bold">Mode Offline Aktif (Firebase Auth Belum Siap)</p>
-                    <p class="text-sm mb-2">Aplikasi beralih ke penyimpanan lokal karena <b>Anonymous Sign-in</b> belum diaktifkan di Firebase Console.</p>
-                    <p class="text-xs opacity-75">Cara Aktifkan: Buka Firebase Console > Build > Authentication > Sign-in method > Tambahkan 'Anonymous'.</p>
-                </div>
-            </div>
-        </div>
-        
         <!-- VIEW 1: KASIR -->
         <div id="view-kasir" class="fade-in">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4 no-print">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 no-print">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-800">Mode Kasir</h2>
-                    <p class="text-gray-500 text-sm">Input pesanan pelanggan di bawah ini.</p>
+                    <h2 class="text-2xl font-black text-gray-900 tracking-tight uppercase">Order Baru</h2>
+                    <p class="text-gray-500 text-sm">Pilih menu dan simpan transaksi secara lokal.</p>
                 </div>
-                <button onclick="resetTransaksi()" class="text-sm bg-indigo-100 hover:bg-indigo-200 text-indigo-700 py-2 px-4 rounded-lg flex items-center gap-2 font-medium">
-                    <i class="fa-solid fa-arrows-rotate"></i> <span>Transaksi Baru</span>
+                <button onclick="resetTransaksi()" class="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 py-2.5 px-5 rounded-xl flex items-center gap-2 font-bold shadow-sm transition">
+                    <i class="fa-solid fa-trash-can text-red-500"></i> Kosongkan Keranjang
                 </button>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Panel Input -->
                 <div class="lg:col-span-4 no-print">
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-32">
-                        <form id="form-kasir" class="space-y-4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-32">
+                        <form id="form-kasir" class="space-y-5">
                             <div>
-                                <label class="block text-sm font-medium text-gray-600 mb-1">Pilih Menu</label>
-                                <select id="select-barang" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
-                                    <option value="" disabled selected>Memuat menu...</option>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Pilih Menu</label>
+                                <select id="select-barang" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer font-medium appearance-none">
+                                    <option value="" disabled selected>-- Pilih Menu --</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-600 mb-1">Jumlah</label>
-                                <input type="number" id="jumlah-kasir" required min="1" value="1" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Jumlah (Qty)</label>
+                                <div class="flex items-center gap-3">
+                                    <button type="button" onclick="adjustQty(-1)" class="w-12 h-12 flex items-center justify-center bg-gray-100 rounded-xl hover:bg-gray-200 font-bold text-xl">-</button>
+                                    <input type="number" id="jumlah-kasir" required min="1" value="1" class="flex-1 h-12 text-center bg-gray-50 border border-gray-200 rounded-xl font-bold text-lg outline-none">
+                                    <button type="button" onclick="adjustQty(1)" class="w-12 h-12 flex items-center justify-center bg-gray-100 rounded-xl hover:bg-gray-200 font-bold text-xl">+</button>
+                                </div>
                             </div>
-                            <button type="submit" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl shadow-sm flex justify-center items-center gap-2">
-                                <i class="fa-solid fa-cart-plus"></i> Tambah Pesanan
+                            <button type="submit" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-md flex justify-center items-center gap-3 transition-all transform active:scale-95">
+                                <i class="fa-solid fa-plus"></i> TAMBAH KE DAFTAR
                             </button>
                         </form>
                     </div>
                 </div>
 
+                <!-- Panel Struk/Keranjang -->
                 <div class="lg:col-span-8 flex flex-col gap-6">
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex-grow flex flex-col overflow-hidden">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 flex-grow flex flex-col overflow-hidden">
                         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                                <i class="fa-solid fa-receipt text-indigo-500"></i> Daftar Pesanan
+                            <h2 class="font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fa-solid fa-receipt text-indigo-500"></i> Rincian Pesanan
                             </h2>
-                            <span id="badge-item" class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-1 rounded-full no-print">0 Item</span>
+                            <span id="badge-item" class="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">0 Item</span>
                         </div>
-                        <div class="p-0 overflow-x-auto custom-scrollbar min-h-[250px]">
-                            <table class="w-full text-left border-collapse">
+                        <div class="p-0 overflow-x-auto custom-scrollbar min-h-[300px]">
+                            <table class="w-full text-left">
                                 <thead>
-                                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                                        <th class="p-4">Menu</th>
+                                    <tr class="bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-tighter">
+                                        <th class="p-4">Item</th>
                                         <th class="p-4 text-right">Harga</th>
                                         <th class="p-4 text-center">Qty</th>
                                         <th class="p-4 text-right">Subtotal</th>
-                                        <th class="p-4 text-center no-print">Aksi</th>
+                                        <th class="p-4 text-center no-print">Hapus</th>
                                     </tr>
                                 </thead>
-                                <tbody id="daftar-keranjang" class="divide-y divide-gray-100 text-sm"></tbody>
+                                <tbody id="daftar-keranjang" class="divide-y divide-gray-100 text-sm font-medium">
+                                    <tr>
+                                        <td colspan="5" class="p-12 text-center text-gray-400 italic">Belum ada pesanan</td>
+                                    </tr>
+                                </tbody>
                             </table>
                         </div>
                     </div>
-                    <div class="bg-indigo-600 rounded-2xl shadow-lg p-6 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div>
-                            <p class="text-indigo-200 font-medium mb-1">Total Bayar</p>
-                            <h3 id="grand-total" class="text-3xl sm:text-4xl font-bold">Rp 0</h3>
+
+                    <!-- Total & Checkout -->
+                    <div class="bg-gray-900 rounded-2xl shadow-xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div class="text-center md:text-left">
+                            <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Keseluruhan</p>
+                            <h3 id="grand-total" class="text-4xl font-black text-indigo-400">Rp 0</h3>
                         </div>
-                        <button onclick="prosesSimpan()" id="btn-bayar" class="w-full sm:w-auto bg-white text-indigo-600 hover:bg-gray-50 font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 no-print transition">
-                            <i class="fa-solid fa-print"></i> Cetak & Simpan
+                        <button onclick="prosesSimpan()" id="btn-bayar" class="w-full md:w-auto bg-indigo-500 hover:bg-indigo-400 text-white font-black py-5 px-10 rounded-2xl flex items-center justify-center gap-3 no-print transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+                            <i class="fa-solid fa-check-double"></i> SIMPAN & CETAK STRUK
                         </button>
                     </div>
                 </div>
@@ -156,92 +159,119 @@
 
         <!-- VIEW 2: DASHBOARD & MASTER -->
         <div id="view-dashboard" class="hidden fade-in space-y-8">
-            <div class="flex justify-between items-center">
-                <h2 class="text-2xl font-bold text-gray-800">Manajemen & Laporan</h2>
-                <button onclick="lockDashboard()" class="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-1.5 rounded-lg font-semibold text-gray-600 flex items-center gap-2">
-                    <i class="fa-solid fa-lock"></i> Kunci Akses
-                </button>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <p class="text-gray-500 text-sm font-medium">Total Omzet</p>
-                    <h4 id="stat-pendapatan" class="text-2xl font-bold text-green-600 mt-1">Rp 0</h4>
+            <div class="flex justify-between items-center bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <div>
+                    <h2 class="text-xl font-black text-gray-900 uppercase">Dashboard Penjualan</h2>
+                    <p class="text-gray-500 text-sm">Kelola menu dan pantau omzet Anda secara lokal.</p>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <p class="text-gray-500 text-sm font-medium">Transaksi Sukses</p>
-                    <h4 id="stat-transaksi" class="text-2xl font-bold text-indigo-600 mt-1">0</h4>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <p class="text-gray-500 text-sm font-medium">Porsi Terjual</p>
-                    <h4 id="stat-item" class="text-2xl font-bold text-orange-600 mt-1">0</h4>
+                <div class="flex gap-2">
+                    <button onclick="lockDashboard()" class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition">
+                        <i class="fa-solid fa-lock"></i> KELUAR
+                    </button>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                        <i class="fa-solid fa-calendar-day text-indigo-500"></i> Rekap Penjualan
-                    </h2>
-                    <button onclick="eksporPDF()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition">
-                        <i class="fa-solid fa-file-pdf"></i> Ekspor PDF
-                    </button>
+            <!-- Panel Pindah Data Antar Perangkat -->
+            <div class="bg-indigo-900 rounded-3xl shadow-xl p-8 text-white flex flex-col md:flex-row items-center gap-8 border border-indigo-700">
+                <div class="flex-grow text-center md:text-left">
+                    <div class="flex items-center gap-3 justify-center md:justify-start mb-2">
+                        <span class="bg-indigo-500 p-2 rounded-lg"><i class="fa-solid fa-shuffle"></i></span>
+                        <h3 class="text-lg font-black uppercase tracking-tight">Pindah Data Antar Perangkat</h3>
+                    </div>
+                    <p class="text-indigo-200 text-xs leading-relaxed max-w-md">
+                        Karena Firestore meminta billing, gunakan fitur ini untuk memindahkan data secara manual. Salin data dari satu HP dan tempelkan di Laptop atau HP lain.
+                    </p>
                 </div>
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-500 text-xs uppercase">
-                                <th class="p-4">Tanggal</th>
-                                <th class="p-4 text-center">Trx</th>
-                                <th class="p-4 text-center">Qty</th>
-                                <th class="p-4 text-right">Pendapatan</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabel-rekap-harian" class="divide-y divide-gray-100 text-sm"></tbody>
-                    </table>
+                <div class="flex gap-3 w-full md:w-auto">
+                    <button onclick="eksporData()" class="flex-1 md:flex-none bg-white text-indigo-900 font-bold py-4 px-8 rounded-2xl hover:bg-indigo-50 transition flex items-center justify-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-download"></i> SALIN DATA
+                    </button>
+                    <label class="flex-1 md:flex-none bg-indigo-600 text-white font-bold py-4 px-8 rounded-2xl hover:bg-indigo-500 transition cursor-pointer flex items-center justify-center gap-2 border border-indigo-400 shadow-lg">
+                        <i class="fa-solid fa-upload"></i> TEMPEL DATA
+                        <input type="file" id="input-impor" class="hidden" accept=".json" onchange="imporData(event)">
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Statistik -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 bg-green-50 text-green-600 rounded-xl"><i class="fa-solid fa-wallet text-xl"></i></div>
+                    </div>
+                    <p class="text-gray-400 text-xs font-bold uppercase">Total Omzet</p>
+                    <h4 id="stat-pendapatan" class="text-2xl font-black text-gray-900 mt-1">Rp 0</h4>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><i class="fa-solid fa-receipt text-xl"></i></div>
+                    </div>
+                    <p class="text-gray-400 text-xs font-bold uppercase">Total Transaksi</p>
+                    <h4 id="stat-transaksi" class="text-2xl font-black text-gray-900 mt-1">0</h4>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 bg-orange-50 text-orange-600 rounded-xl"><i class="fa-solid fa-box text-xl"></i></div>
+                    </div>
+                    <p class="text-gray-400 text-xs font-bold uppercase">Item Terjual</p>
+                    <h4 id="stat-item" class="text-2xl font-black text-gray-900 mt-1">0</h4>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div class="lg:col-span-4 space-y-6">
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                        <h2 class="text-lg font-semibold mb-5 flex items-center gap-2 text-gray-800">
-                            <i class="fa-solid fa-plus-circle text-indigo-500"></i> Master Menu
+                <!-- Manajemen Menu -->
+                <div class="lg:col-span-5 space-y-6">
+                    <!-- Input Menu -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                        <h2 class="font-black mb-6 flex items-center gap-2 text-gray-800 uppercase text-sm">
+                            <i class="fa-solid fa-circle-plus text-green-500"></i> Tambah Menu Baru
                         </h2>
                         <form id="form-master" class="space-y-4">
-                            <input type="text" id="db-kode" required placeholder="Kode (NK-01)" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
-                            <input type="text" id="db-nama" required placeholder="Nama Menu" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
-                            <input type="number" id="db-harga" required min="0" placeholder="Harga" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
-                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-xl transition shadow-sm">Simpan Menu</button>
+                            <input type="text" id="db-nama" required placeholder="Nama Menu (Contoh: Nasi Kucing)" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                            <div class="relative">
+                                <span class="absolute left-4 top-3.5 font-bold text-gray-400">Rp</span>
+                                <input type="number" id="db-harga" required min="0" placeholder="Harga" class="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+                            </div>
+                            <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-xl transition shadow-md uppercase text-xs tracking-widest">Simpan ke Database Perangkat</button>
                         </form>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="p-4 bg-gray-50 border-b border-gray-100 font-semibold text-gray-800">Daftar Menu</div>
+
+                    <!-- List Menu -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="p-4 bg-gray-50 border-b border-gray-200 font-bold text-xs uppercase tracking-tighter text-gray-500">Daftar Menu Tersimpan</div>
                         <div class="max-h-[300px] overflow-y-auto custom-scrollbar">
                             <table class="w-full text-sm">
-                                <tbody id="tabel-database" class="divide-y divide-gray-100"></tbody>
+                                <tbody id="tabel-database" class="divide-y divide-gray-100">
+                                    <!-- List menu muncul disini -->
+                                </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <div class="lg:col-span-8">
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full overflow-hidden">
+                <!-- Riwayat Transaksi -->
+                <div class="lg:col-span-7">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-full overflow-hidden">
                         <div class="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                            <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                                <i class="fa-solid fa-history text-indigo-500"></i> Transaksi Terakhir
+                            <h2 class="font-black text-gray-800 flex items-center gap-2 uppercase text-sm">
+                                <i class="fa-solid fa-clock-rotate-left text-indigo-500"></i> Aktivitas Penjualan
                             </h2>
+                            <button onclick="eksporPDF()" class="bg-red-500 hover:bg-red-600 text-white text-[10px] font-black py-2 px-4 rounded-lg flex items-center gap-2 transition uppercase">
+                                <i class="fa-solid fa-file-pdf"></i> Download Laporan (PDF)
+                            </button>
                         </div>
                         <div class="flex-grow overflow-auto custom-scrollbar min-h-[400px]">
-                            <table class="w-full text-left border-collapse">
-                                <thead class="sticky top-0 bg-white shadow-sm">
-                                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase">
+                            <table class="w-full text-left">
+                                <thead class="sticky top-0 bg-white shadow-sm z-10">
+                                    <tr class="bg-gray-50 text-gray-400 text-[10px] font-black uppercase">
                                         <th class="p-4">Waktu</th>
-                                        <th class="p-4">Detail</th>
+                                        <th class="p-4">Item</th>
                                         <th class="p-4 text-right">Total</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tabel-riwayat" class="divide-y divide-gray-100 text-sm"></tbody>
+                                <tbody id="tabel-riwayat" class="divide-y divide-gray-100 text-xs font-medium">
+                                    <!-- Riwayat muncul disini -->
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -251,256 +281,278 @@
     </main>
 
     <footer class="bg-white border-t border-gray-200 mt-auto no-print">
-        <div class="max-w-7xl mx-auto px-4 py-4 text-center text-sm text-gray-500">
-            Angkringan Brotherhood &copy; 2026 | Safe POS System
+        <div class="max-w-7xl mx-auto px-4 py-6 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            Angkringan Brotherhood POS &bull; Versi Offline Aman &bull; &copy; Dody & Vidy 2026
         </div>
     </footer>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Konfigurasi
-        const firebaseConfig = {
-            apiKey: "AIzaSyCnJSll6Wj4iwek9naHU7vsqeD4SB0h94k",
-            authDomain: "angkring-brotherhood.firebaseapp.com",
-            projectId: "angkring-brotherhood",
-            storageBucket: "angkring-brotherhood.firebasestorage.app",
-            messagingSenderId: "427016884454",
-            appId: "1:427016884454:web:188eb0e81f4af843f0ab27"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = firebaseConfig.projectId;
-
-        // State Global
-        let IS_CLOUD_ACTIVE = false;
-        let currentUser = null;
-        let localMenus = [
-            { id: 'm1', kode: 'M-01', nama: 'Es Teh', harga: 3000 },
-            { id: 'm2', kode: 'M-02', nama: 'Susu Jahe', harga: 5000 },
-            { id: 'm3', kode: 'S-01', nama: 'Sate Usus', harga: 2000 }
+    <script>
+        // --- DATA STORAGE (Local Storage - Solusi Tanpa Billing) ---
+        let menus = JSON.parse(localStorage.getItem('brotherhood_menus')) || [
+            { id: 1, nama: 'Sate Usus', harga: 2000 },
+            { id: 2, nama: 'Nasi Kucing', harga: 3000 },
+            { id: 3, nama: 'Es Teh Manis', harga: 3000 }
         ];
-        let localSales = [];
+
+        let sales = JSON.parse(localStorage.getItem('brotherhood_sales')) || [];
         let keranjang = [];
-        const ADMIN_PIN = "1234"; 
-        let isAuthenticated = false;
+        const ADMIN_PIN = "1234";
+        let isAuth = false;
 
-        const formatRupiah = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+        const formatRupiah = (a) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(a);
 
-        // -- SECURITY --
+        // --- AUTH LOGIC ---
         window.openAuthModal = () => {
-            if (isAuthenticated) switchTab('dashboard');
-            else {
-                document.getElementById('modal-auth').classList.remove('hidden');
-                document.getElementById('input-pin').focus();
-            }
+            if (isAuth) switchTab('dashboard');
+            else document.getElementById('modal-auth').classList.remove('hidden');
         };
         window.closeAuthModal = () => {
             document.getElementById('modal-auth').classList.add('hidden');
-            document.getElementById('auth-error').classList.add('hidden');
             document.getElementById('input-pin').value = '';
         };
         window.verifyPin = () => {
             if (document.getElementById('input-pin').value === ADMIN_PIN) {
-                isAuthenticated = true;
+                isAuth = true;
                 closeAuthModal();
                 switchTab('dashboard');
             } else {
                 document.getElementById('auth-error').classList.remove('hidden');
-                document.getElementById('input-pin').value = '';
             }
         };
-        window.lockDashboard = () => { isAuthenticated = false; switchTab('kasir'); };
+        window.lockDashboard = () => { isAuth = false; switchTab('kasir'); };
 
-        // -- INITIALIZATION & FALLBACK --
-        const initSystem = async () => {
-            try {
-                // Mencoba Auth
-                await signInAnonymously(auth);
-            } catch (err) {
-                console.warn("Auth Failed: Beralih ke mode offline lokal.", err.code);
-                document.getElementById('auth-status').textContent = "Offline Mode (Lokal)";
-                document.getElementById('auth-status').className = "text-orange-300 text-xs font-bold";
-                document.getElementById('config-error-alert').classList.remove('hidden');
-                IS_CLOUD_ACTIVE = false;
-                renderMenuUI();
-                renderDashboardUI();
-            }
-        };
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                IS_CLOUD_ACTIVE = true;
-                document.getElementById('auth-status').textContent = "Cloud Sync Aktif";
-                document.getElementById('auth-status').className = "text-green-300 text-xs font-bold";
-                document.getElementById('config-error-alert').classList.add('hidden');
-                startCloudListeners();
-            }
-        });
-
-        const startCloudListeners = () => {
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'menus'), (snap) => {
-                const cloudData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if(cloudData.length > 0) localMenus = cloudData;
-                renderMenuUI();
-            });
-
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'sales'), (snap) => {
-                localSales = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                localSales.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-                renderDashboardUI();
-            });
-        };
-
-        // -- UI RENDERING --
-        const renderMenuUI = () => {
-            const select = document.getElementById('select-barang');
-            const tabel = document.getElementById('tabel-database');
-            select.innerHTML = '<option value="" disabled selected>-- Pilih Menu --</option>';
-            tabel.innerHTML = '';
-            localMenus.forEach(item => {
-                const opt = document.createElement('option');
-                opt.value = item.id;
-                opt.textContent = `${item.nama} (${formatRupiah(item.harga)})`;
-                select.appendChild(opt);
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="p-3 text-gray-500">${item.kode || '-'}</td><td class="p-3 font-medium">${item.nama}</td><td class="p-3 text-right">${formatRupiah(item.harga)}</td><td class="p-3 text-center"><button onclick="window.hapusMenu('${item.id}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash-can"></i></button></td>`;
-                tabel.appendChild(tr);
-            });
-        };
-
-        const renderDashboardUI = () => {
-            const omzet = localSales.reduce((a, c) => a + c.total, 0);
-            const qty = localSales.reduce((a, c) => a + (c.totalItem || 0), 0);
-            document.getElementById('stat-pendapatan').textContent = formatRupiah(omzet);
-            document.getElementById('stat-transaksi').textContent = localSales.length;
-            document.getElementById('stat-item').textContent = qty;
-            
-            const tabelR = document.getElementById('tabel-riwayat');
-            tabelR.innerHTML = '';
-            localSales.slice(0, 20).forEach(r => {
-                const waktu = r.timestamp ? new Date(r.timestamp.seconds * 1000).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString();
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="p-4 text-gray-400">${waktu}</td><td class="p-4 font-medium">${r.detail}</td><td class="p-4 text-right font-bold text-green-600">${formatRupiah(r.total)}</td>`;
-                tabelR.appendChild(tr);
-            });
-
-            const rekap = {};
-            localSales.forEach(r => {
-                const tgl = r.tanggalKey || 'Hari ini';
-                if(!rekap[tgl]) rekap[tgl] = { tgl, trx: 0, item: 0, tot: 0 };
-                rekap[tgl].trx++; rekap[tgl].item += (r.totalItem || 0); rekap[tgl].tot += r.total;
-            });
-            const tabelH = document.getElementById('tabel-rekap-harian');
-            tabelH.innerHTML = '';
-            Object.values(rekap).forEach(h => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="p-4 font-semibold">${h.tgl}</td><td class="p-4 text-center">${h.trx}</td><td class="p-4 text-center">${h.item}</td><td class="p-4 text-right font-bold text-indigo-600">${formatRupiah(h.tot)}</td>`;
-                tabelH.appendChild(tr);
-            });
-        };
-
-        // -- ACTIONS --
-        window.prosesSimpan = async () => {
-            if (keranjang.length === 0) return;
-            const total = keranjang.reduce((a, c) => a + c.subtotal, 0);
-            const items = keranjang.reduce((a, c) => a + c.jumlah, 0);
-            const detail = keranjang.map(i => `${i.nama} (${i.jumlah})`).join(', ');
-            const tgl = new Date().toLocaleDateString('id-ID');
-
-            if (IS_CLOUD_ACTIVE) {
-                try {
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sales'), {
-                        total, totalItem: items, detail, tanggalKey: tgl, timestamp: serverTimestamp()
-                    });
-                } catch (e) { console.error("Cloud Save Failed", e); }
-            } else {
-                localSales.unshift({ total, totalItem: items, detail, tanggalKey: tgl, id: Date.now() });
-                renderDashboardUI();
-            }
-
-            window.print();
-            keranjang = [];
-            renderKeranjangUI();
-        };
-
-        document.getElementById('form-master').onsubmit = async (e) => {
-            e.preventDefault();
+        // --- SYNC MANUAL (SOLUSI PENGGANTI FIRESTORE) ---
+        window.eksporData = () => {
             const data = {
-                kode: document.getElementById('db-kode').value,
-                nama: document.getElementById('db-nama').value,
-                harga: parseInt(document.getElementById('db-harga').value)
+                menus: menus,
+                sales: sales,
+                exportDate: new Date().toISOString()
             };
-            if (IS_CLOUD_ACTIVE) {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'menus'), data);
-            } else {
-                localMenus.push({ ...data, id: Date.now() });
-                renderMenuUI();
-            }
-            e.target.reset();
+            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Data-Kasir-Brotherhood-${new Date().toLocaleDateString('id-ID')}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
         };
 
-        window.hapusMenu = async (id) => {
-            if (!confirm("Hapus menu?")) return;
-            if (IS_CLOUD_ACTIVE) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'menus', id));
-            else { localMenus = localMenus.filter(m => m.id !== id); renderMenuUI(); }
+        window.imporData = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.menus && data.sales) {
+                        if (confirm("Perhatian! Menempel data ini akan menghapus data yang ada di perangkat ini dan menggantinya dengan data dari file backup. Lanjutkan?")) {
+                            menus = data.menus;
+                            sales = data.sales;
+                            saveToLocal();
+                            render();
+                            alert("Berhasil! Data perangkat ini telah diperbarui sesuai file backup.");
+                        }
+                    } else {
+                        alert("File tidak dikenal!");
+                    }
+                } catch (err) {
+                    alert("Gagal membaca data: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; 
+        };
+
+        // --- CORE FUNCTIONS ---
+        const render = () => {
+            const select = document.getElementById('select-barang');
+            select.innerHTML = '<option value="" disabled selected>-- Pilih Menu --</option>';
+            menus.sort((a,b) => a.nama.localeCompare(b.nama)).forEach(m => {
+                const o = document.createElement('option');
+                o.value = m.id;
+                o.textContent = `${m.nama} (${formatRupiah(m.harga)})`;
+                select.appendChild(o);
+            });
+
+            const tMenu = document.getElementById('tabel-database');
+            tMenu.innerHTML = '';
+            menus.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-gray-800">${m.nama}</td>
+                    <td class="p-4 text-right font-medium text-gray-500">${formatRupiah(m.harga)}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="hapusMenu(${m.id})" class="text-red-400 hover:text-red-600 transition"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tMenu.appendChild(tr);
+            });
+
+            const totalOmzet = sales.reduce((a, c) => a + c.total, 0);
+            const totalQty = sales.reduce((a, c) => a + c.qty, 0);
+            document.getElementById('stat-pendapatan').textContent = formatRupiah(totalOmzet);
+            document.getElementById('stat-transaksi').textContent = sales.length;
+            document.getElementById('stat-item').textContent = totalQty;
+
+            const tRiwayat = document.getElementById('tabel-riwayat');
+            tRiwayat.innerHTML = '';
+            sales.slice().reverse().forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-4 text-gray-400 font-bold">${s.waktu}</td>
+                    <td class="p-4 text-gray-800">${s.item}</td>
+                    <td class="p-4 text-right font-black text-indigo-600">${formatRupiah(s.total)}</td>
+                `;
+                tRiwayat.appendChild(tr);
+            });
+
+            saveToLocal();
+        };
+
+        const saveToLocal = () => {
+            localStorage.setItem('brotherhood_menus', JSON.stringify(menus));
+            localStorage.setItem('brotherhood_sales', JSON.stringify(sales));
+        };
+
+        // --- KASIR ACTIONS ---
+        window.adjustQty = (val) => {
+            const input = document.getElementById('jumlah-kasir');
+            const current = parseInt(input.value) || 1;
+            if (current + val >= 1) input.value = current + val;
         };
 
         document.getElementById('form-kasir').onsubmit = (e) => {
             e.preventDefault();
-            const id = document.getElementById('select-barang').value;
+            const id = parseInt(document.getElementById('select-barang').value);
             const qty = parseInt(document.getElementById('jumlah-kasir').value);
-            const item = localMenus.find(m => m.id === id);
+            const item = menus.find(m => m.id === id);
+            
             if (item) {
-                keranjang.push({ ...item, jumlah: qty, subtotal: item.harga * qty, ik: Date.now() });
-                renderKeranjangUI();
+                const existing = keranjang.find(k => k.id === id);
+                if (existing) {
+                    existing.qty += qty;
+                    existing.subtotal = existing.qty * existing.harga;
+                } else {
+                    keranjang.push({ ...item, qty, subtotal: item.harga * qty, key: Date.now() });
+                }
+                renderKeranjang();
+                e.target.reset();
+                document.getElementById('jumlah-kasir').value = 1;
             }
         };
 
-        const renderKeranjangUI = () => {
-            const b = document.getElementById('daftar-keranjang');
-            b.innerHTML = '';
-            let t = 0;
-            keranjang.forEach(i => {
-                t += i.subtotal;
+        const renderKeranjang = () => {
+            const list = document.getElementById('daftar-keranjang');
+            list.innerHTML = '';
+            let total = 0;
+            let qtyTot = 0;
+
+            if (keranjang.length === 0) {
+                list.innerHTML = '<tr><td colspan="5" class="p-12 text-center text-gray-400 italic">Belum ada pesanan</td></tr>';
+            }
+
+            keranjang.forEach(k => {
+                total += k.subtotal;
+                qtyTot += k.qty;
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="p-4">${i.nama}</td><td class="p-4 text-right">${formatRupiah(i.harga)}</td><td class="p-4 text-center">${i.jumlah}</td><td class="p-4 text-right font-bold">${formatRupiah(i.subtotal)}</td><td class="p-4 text-center no-print"><button onclick="window.hK(${i.ik})" class="text-red-400">×</button></td>`;
-                b.appendChild(tr);
+                tr.innerHTML = `
+                    <td class="p-4 font-bold">${k.nama}</td>
+                    <td class="p-4 text-right text-gray-500">${formatRupiah(k.harga)}</td>
+                    <td class="p-4 text-center font-black">${k.qty}</td>
+                    <td class="p-4 text-right font-black text-indigo-600">${formatRupiah(k.subtotal)}</td>
+                    <td class="p-4 text-center no-print">
+                        <button onclick="hapusKeranjang(${k.key})" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition">×</button>
+                    </td>
+                `;
+                list.appendChild(tr);
             });
-            document.getElementById('grand-total').textContent = formatRupiah(t);
-            document.getElementById('badge-item').textContent = `${keranjang.length} Item`;
+
+            document.getElementById('grand-total').textContent = formatRupiah(total);
+            document.getElementById('badge-item').textContent = `${qtyTot} ITEM`;
         };
 
-        window.hK = (ik) => { keranjang = keranjang.filter(i => i.ik !== ik); renderKeranjangUI(); };
-        window.resetTransaksi = () => { keranjang = []; renderKeranjangUI(); };
+        window.hapusKeranjang = (key) => {
+            keranjang = keranjang.filter(k => k.key !== key);
+            renderKeranjang();
+        };
+
+        window.resetTransaksi = () => {
+            if (confirm("Kosongkan keranjang?")) {
+                keranjang = [];
+                renderKeranjang();
+            }
+        };
+
+        window.prosesSimpan = () => {
+            if (keranjang.length === 0) return;
+            
+            const total = keranjang.reduce((a, c) => a + c.subtotal, 0);
+            const qty = keranjang.reduce((a, c) => a + c.qty, 0);
+            const detail = keranjang.map(k => `${k.nama} (x${k.qty})`).join(', ');
+            const now = new Date();
+            const waktu = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            
+            sales.push({ waktu, item: detail, total, qty, id: Date.now() });
+            
+            render();
+            window.print();
+            keranjang = [];
+            renderKeranjang();
+        };
+
+        // --- MASTER ACTIONS ---
+        document.getElementById('form-master').onsubmit = (e) => {
+            e.preventDefault();
+            const nama = document.getElementById('db-nama').value;
+            const harga = parseInt(document.getElementById('db-harga').value);
+            menus.push({ id: Date.now(), nama, harga });
+            render();
+            e.target.reset();
+        };
+
+        window.hapusMenu = (id) => {
+            if (confirm("Hapus menu ini?")) {
+                menus = menus.filter(m => m.id !== id);
+                render();
+            }
+        };
+
+        // --- UI UTILS ---
         window.switchTab = (t) => {
             document.getElementById('view-kasir').classList.toggle('hidden', t !== 'kasir');
             document.getElementById('view-dashboard').classList.toggle('hidden', t !== 'dashboard');
+            
+            document.getElementById('tab-kasir').className = t === 'kasir' ? 'px-2 py-4 text-sm font-bold border-b-4 border-white text-white transition-all' : 'px-2 py-4 text-sm font-bold border-b-4 border-transparent text-indigo-200 hover:text-white transition-all';
+            document.getElementById('tab-dashboard').className = t === 'dashboard' ? 'px-2 py-4 text-sm font-bold border-b-4 border-white text-white transition-all' : 'px-2 py-4 text-sm font-bold border-b-4 border-transparent text-indigo-200 hover:text-white transition-all';
         };
 
         window.eksporPDF = () => {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("Laporan Angkringan Brotherhood", 14, 20);
-            const rows = localSales.map(s => [s.tanggalKey || '-', s.detail, formatRupiah(s.total)]);
-            doc.autoTable({ startY: 30, head: [['Tanggal', 'Detail', 'Total']], body: rows });
-            doc.save("laporan.pdf");
+            doc.setFontSize(18);
+            doc.text("LAPORAN PENJUALAN ANGKRINGAN BROTHERHOOD", 14, 20);
+            doc.setFontSize(10);
+            doc.text(`Periode s/d: ${new Date().toLocaleString('id-ID')}`, 14, 28);
+
+            const body = sales.map(s => [s.waktu, s.item, formatRupiah(s.total)]);
+            doc.autoTable({
+                startY: 35,
+                head: [['Waktu', 'Item', 'Total']],
+                body: body,
+                theme: 'striped',
+                headStyles: { fillColor: [67, 56, 202] }
+            });
+            doc.save(`Laporan-Brotherhood-${Date.now()}.pdf`);
         };
 
         setInterval(() => {
             const d = new Date();
-            document.getElementById('display-hari').textContent = d.toLocaleString('id-ID', {weekday:'long', hour:'2-digit', minute:'2-digit'});
+            document.getElementById('display-hari').textContent = d.toLocaleString('id-ID', {weekday:'long'}).toUpperCase() + ', ' + d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
             document.getElementById('display-tanggal').textContent = d.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
         }, 1000);
 
-        initSystem();
+        render();
     </script>
 </body>
 </html>
